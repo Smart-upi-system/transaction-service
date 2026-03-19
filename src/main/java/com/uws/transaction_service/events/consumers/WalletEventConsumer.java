@@ -5,6 +5,7 @@ import com.uws.transaction_service.events.DebitConfirmedEvent;
 import com.uws.transaction_service.model.Transaction;
 import com.uws.transaction_service.repository.TransactionLogRepository;
 import com.uws.transaction_service.repository.TransactionRepository;
+import com.uws.transaction_service.service.TransactionOrchestratorI;
 import com.uws.transaction_service.service.impl.TransactionOrchestrator;
 import com.uws.transaction_service.service.impl.TransactionStateManager;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +23,11 @@ public class WalletEventConsumer {
 
     private final TransactionRepository transactionRepository;
     private final TransactionStateManager stateManager;
-    private final TransactionOrchestrator orchestrator;
+    private final TransactionOrchestratorI orchestrator;
 
     @KafkaListener(
             topics = "${kafka.topics.wallet-events}",
-            groupId = "${spring.kafka.consumer.group-id:transaction-service-wallet-group}",
+            groupId = "${spring.kafka.consumer.wallet.group-id:transaction-service-wallet-group}",
             containerFactory = "debitConfirmedKafkaListenerFactory"
     )
     public void handleDebitConfirmed(DebitConfirmedEvent event){
