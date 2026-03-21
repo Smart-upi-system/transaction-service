@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.uws.user.grpc.proto";
+option java_outer_classname = "UserProto";
+
+package user;
+
+service UserService{
+  // Get user by UPI ID (for transaction validation)
+  rpc GetUserByUpiId(GetUserByUpiIdRequest) returns (UserResponse);
+
+  // Validate user exists and is active
+  rpc ValidateUser(ValidateUserRequest) returns (ValidationResponse);
+
+  // Get user profile by userId
+  rpc GetUserProfile(GetUserProfileRequest) returns (UserProfileResponse);
+}
+message GetUserByUpiIdRequest {
+  string upi_id = 1;
+}
+
+message ValidateUserRequest{
+  string user_id=1;
+}
+
+message GetUserProfileRequest{
+  string user_id=1;
+}
+
+message UserResponse{
+  string user_id = 1;
+  string upi_id = 2;
+  string first_name = 3;
+  string last_name = 4;
+  bool kyc_verified = 5;
+  bool active = 6;
+  string wallet_id = 7;
+  bool success = 8;
+  string message = 9;
+}
+
+message ValidationResponse{
+  bool valid = 1;
+  bool active = 2;
+  bool kyc_verified = 3;
+  string message = 4;
+}
+
+message UserProfileResponse{
+  string user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string upi_id = 4;
+  string phone = 5;
+  string kyc_status = 6;
+  string address = 7;
+  string city = 8;
+  string state = 9;
+  string pincode = 10;
+  bool active = 11;
+  bool success = 12;
+  string message = 13;
+}
