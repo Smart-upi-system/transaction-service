@@ -1,9 +1,11 @@
 package com.uws.transaction_service.controller;
 
 import com.uws.transaction_service.model.dtos.StateLogResponse;
+import com.uws.transaction_service.model.dtos.TransactionHistoryResponse;
 import com.uws.transaction_service.model.dtos.TransactionResponse;
 import com.uws.transaction_service.model.dtos.TransferRequest;
 import com.uws.transaction_service.service.TransactionService;
+import jakarta.transaction.InvalidTransactionException;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Path;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +30,7 @@ public class TransactionController {
      * Initiate P2P transfer
      */
     @PostMapping("/transfer")
-    public ResponseEntity<TransactionResponse> transfer(@RequestHeader("X-User-Id") String senderId, @RequestHeader(value = "X-Correlation-Id", required = false) String correlationId, @Valid @RequestBody TransferRequest request){
+    public ResponseEntity<TransactionResponse> transfer(@RequestHeader("X-User-Id") String senderId, @RequestHeader(value = "X-Correlation-Id", required = false) String correlationId, @Valid @RequestBody TransferRequest request) throws InvalidTransactionException {
         log.info("POST /transactions/transfer - senderId: {}, receiverUpiId: {}",
                 senderId, request.getReceiverUpiId());
 
@@ -55,12 +57,12 @@ public class TransactionController {
 }
 
 @GetMapping("/history")
-public ResponseEntity<TransactionResponse> getHistory( @RequestHeader("X-User-Id") String userId,
-                                                       @RequestParam(defaultValue = "0") int page,
-                                                       @RequestParam(defaultValue = "20") int size){
+public ResponseEntity<TransactionHistoryResponse> getHistory(@RequestHeader("X-User-Id") String userId,
+                                                             @RequestParam(defaultValue = "0") int page,
+                                                             @RequestParam(defaultValue = "20") int size){
     log.info("GET /transactions/history - userId: {}", userId);
 
-TransactionResponse response=transactionService.getTransactionHistory(UUID.fromString(userId), PageRequest.of(page,size));
+    TransactionHistoryResponse response=transactionService.getTransactionHistory(UUID.fromString(userId), PageRequest.of(page,size));
 
 return ResponseEntity.ok(response);
 
