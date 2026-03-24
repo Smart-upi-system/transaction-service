@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.uws.wallet.grpc.proto";
+option java_outer_classname = "WalletProto";
+
+package wallet;
+
+service WalletService {
+    rpc CreateWallet(CreateWalletRequest) returns (WalletResponse);
+    rpc Debit(DebitRequest) returns (WalletResponse);
+    rpc Credit(CreditRequest) returns (WalletResponse);
+    rpc GetBalance(GetBalanceRequest) returns (BalanceResponse);
+    rpc CreateGoalWallet(CreateGoalWalletRequest) returns (WalletResponse);
+    rpc TransferBetweenWallets(TransferRequest) returns (WalletResponse);
+}
+
+message CreateWalletRequest {
+    string user_id = 1;
+}
+
+message DebitRequest {
+    string user_id = 1;
+    string wallet_id = 2;
+    double amount = 3;
+    string transaction_id = 4;
+    string idempotency_key = 5;
+    string description = 6;
+}
+
+message CreditRequest {
+    string user_id = 1;
+    string wallet_id = 2;
+    double amount = 3;
+    string transaction_id = 4;
+    string idempotency_key = 5;
+    string description = 6;
+}
+
+message GetBalanceRequest {
+    string wallet_id = 1;
+}
+
+message CreateGoalWalletRequest {
+    string user_id = 1;
+    string goal_id = 2;
+    string goal_name = 3;
+}
+
+message TransferRequest {
+    string from_wallet_id = 1;
+    string to_wallet_id = 2;
+    double amount = 3;
+    string transaction_id = 4;
+    string idempotency_key = 5;
+    string description = 6;
+}
+
+message WalletResponse {
+    bool success = 1;
+    string message = 2;
+    string wallet_id = 3;
+    double balance = 4;
+    string wallet_type = 5;
+    int64 version = 6;
+}
+
+message BalanceResponse {
+    bool success = 1;
+    string message = 2;
+    string wallet_id = 3;
+    double balance = 4;
+    string wallet_type = 5;
+    string user_id = 6;
+    string goal_id = 7;
+}

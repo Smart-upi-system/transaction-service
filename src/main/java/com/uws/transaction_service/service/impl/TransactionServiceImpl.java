@@ -10,6 +10,7 @@ import com.uws.transaction_service.model.dtos.TransferRequest;
 import com.uws.transaction_service.repository.TransactionLogRepository;
 import com.uws.transaction_service.repository.TransactionRepository;
 import com.uws.transaction_service.service.TransactionOrchestratorI;
+import com.uws.user.grpc.proto.*;
 import com.uws.transaction_service.service.TransactionService;
 import com.uws.transaction_service.utils.IdempotencyManager;
 import jakarta.transaction.InvalidTransactionException;
@@ -64,7 +65,7 @@ public class TransactionServiceImpl implements TransactionService {
 //        step 3 : get receiver by upi id
         UserResponse receiver = userServiceGrpcClient.getUserByUpiId(request.getReceiverUpiId());
         if(!receiver.getSuccess() || !receiver.getActive()){
-            throw new UserNotFoundException("Receiver not found: " + request.getReceiverUpiId());
+            throw new RuntimeException("Receiver not found: " + request.getReceiverUpiId());
         }
 
 //        step 4 validate that sender != receiver
@@ -73,7 +74,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // Step 5: Get sender UPI ID
-        String senderUpiId = userServiceGrpcClient.getUserById(senderId).getUpiId();
+        String senderUpiId = userServiceGrpcClient.getUserByUpiId(senderId).getUpiId();
 
         Map<String,Object> metdaData = new HashMap<>();
         metdaData.put("senderKycVerified",senderValidation.getKycVerified());
@@ -83,8 +84,6 @@ public class TransactionServiceImpl implements TransactionService {
         Transaction transaction=Transaction.builder()
                 .senderId(senderId)
                 .receiverId(receiver.getUserId())
-                .senderWalletId(null)  // Will be set by orchestrator
-                .receiverWalletId(receiver.getWalletId())
                 .senderUpiId(senderUpiId)
                 .receiverUpiId(request.getReceiverUpiId())
                 .amount(request.getAmount())
