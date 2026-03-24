@@ -29,8 +29,8 @@ public class FraudEventConsumer {
      * Handle FraudCheckPassed event from Fraud Service
      */
     @KafkaListener(
-            topics = "${kafka.topics.fraud-events:fraud.events}",
-            groupId = "${spring.kafka.consumer.fraud.group-id:transaction-service-fraud-group}",
+            topics = "${spring.kafka.topics.fraud-events:fraud.events}",
+            groupId = "${spring.kafka.consumer.fraud-pass.group-id:transaction-service-fraud-pass-group}",
             containerFactory = "fraudPassedKafkaListenerFactory"
     )
     public void handleFraudCheckPass(FraudCheckPassedEvent event){
@@ -55,9 +55,9 @@ public class FraudEventConsumer {
 
 
     @KafkaListener(
-            topics = "${kafka.topics.fraud-events:fraud.events}",
-            groupId = "${spring.kafka.consumer.fraud.group-id:transaction-service-fraud-group}",
-            containerFactory = "fraudPassedKafkaListenerFactory"
+            topics = "${spring.kafka.topics.fraud-events:fraud.events}",
+            groupId = "${spring.kafka.consumer.fraud-fail.group-id:transaction-service-fraud-fail-group}",
+            containerFactory = "fraudFailedKafkaListenerFactory"
     )
     public void handleFraudCheckFailed(FraudCheckFailedEvent event){
         log.info("Received FraudCheckFailed event: transactionId={}", event.getTransactionId());
