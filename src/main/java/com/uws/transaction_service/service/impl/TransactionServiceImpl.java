@@ -37,14 +37,13 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository transactionRepository;
     private final TransactionLogRepository logRepository;
     private final TransactionOrchestrator transactionOrchestrator;
-    private final TransactionStateManager stateManager;
     private final UserServiceGrpcClient userServiceGrpcClient;
     private final IdempotencyManager idempotencyManager;
     private final ModelMapper modelMapper;
 
     @Override
     @Transactional
-    public TransactionResponse tranfer(UUID senderId, TransferRequest request, String correlationId) throws InvalidTransactionException {
+    public TransactionResponse tranfer(String senderId, TransferRequest request, String correlationId) throws InvalidTransactionException {
         log.info("Processing transfer: senderId={}, receiverUpiId={}, amount={}",
                 senderId, request.getReceiverUpiId(), request.getAmount());
 
@@ -53,11 +52,11 @@ public class TransactionServiceImpl implements TransactionService {
             String existingTxnId = idempotencyManager.getTransactionId(idempotencyKey);
             log.info("Duplicate request: idempotencyKey={}, existingTxnId={}",
                     idempotencyKey, existingTxnId);
-            return getTransaction(senderId.toString(),UUID.fromString(existingTxnId));
+            return getTransaction(senderId.toString(), existingTxnId);
         }
 
         // Step 2: Validate sender
-        ValidationResponse senderValidation=userServiceGrpcClient.validateUser(senderId.toString());
+        ValidationResponse senderValidation=userServiceGrpcClient.validateUser(senderId);
         if(!senderValidation.getValid() || !senderValidation.getActive()){
             throw new InvalidTransactionException("Sender account is invalid or inactive");
         }
@@ -68,10 +67,13 @@ public class TransactionServiceImpl implements TransactionService {
             throw new UserNotFoundException("Receiver not found: " + request.getReceiverUpiId());
         }
 
-//        step 4 validate that sender is no receiver
-        if(senderId.toString().equals(receiver.getUserId())){
+//        step 4 validate that sender != receiver
+        if(senderId.equals(receiver.getUserId())){
             throw new InvalidTransactionException("Cannot transfer to yourself");
         }
+
+        // Step 5: Get sender UPI ID
+        String senderUpiId = userServiceGrpcClient.getUserById(senderId).getUpiId();
 
         Map<String,Object> metdaData = new HashMap<>();
         metdaData.put("senderKycVerified",senderValidation.getKycVerified());
@@ -80,8 +82,10 @@ public class TransactionServiceImpl implements TransactionService {
 
         Transaction transaction=Transaction.builder()
                 .senderId(senderId)
-                .receiverId(UUID.fromString(receiver.getUserId()))
-                .senderUpiId(getSenderUpiId(senderId))
+                .receiverId(receiver.getUserId())
+                .senderWalletId(null)  // Will be set by orchestrator
+                .receiverWalletId(receiver.getWalletId())
+                .senderUpiId(senderUpiId)
                 .receiverUpiId(request.getReceiverUpiId())
                 .amount(request.getAmount())
                 .currency("INR")
@@ -97,13 +101,13 @@ public class TransactionServiceImpl implements TransactionService {
         transactionRepository.save(transaction);
         log.info("Transaction created: transactionId={}", transaction.getTransactionId());
 
-        // Step 6: Mark as processed (idempotency)
-        idempotencyManager.markAsProcessed(idempotencyKey, transaction.getTransactionId().toString());
+        // Step 7: Mark as processed (idempotency)
+        idempotencyManager.markAsProcessed(idempotencyKey, transaction.getTransactionId());
 
-        // Step 7: Initiate Saga workflow
+        // Step 8: Initiate Saga workflow
         transactionOrchestrator.initiateTransaction(transaction);
 
-        // Step 8: Trigger debit (state will be VALIDATING at this point)
+        // Step 9: Trigger debit (state will be VALIDATING at this point)
         transactionOrchestrator.senderDebit(transaction);
 
         TransactionResponse transactionResponse= modelMapper.map(transaction,TransactionResponse.class);
@@ -111,7 +115,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     }
 
-    private String getSenderUpiId(UUID senderId) {
+    private String getSenderUpiId(String senderId) {
         // In production: Call User Service gRPC to get UPI ID
         // For now, return placeholder
         return "sender@wallet";
@@ -119,7 +123,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional(readOnly = true)
-    public TransactionResponse getTransaction(String senderId, UUID transactionId) {
+    public TransactionResponse getTransaction(String senderId, String transactionId) {
         log.info("Getting transaction: {}", transactionId);
 
         Transaction transaction=transactionRepository.findByTransactionId(transactionId);
@@ -128,7 +132,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional(readOnly = true)
-    public TransactionHistoryResponse getTransactionHistory(UUID userId, PageRequest pageable) {
+    public TransactionHistoryResponse getTransactionHistory(String userId, PageRequest pageable) {
         log.info("Getting transaction history: userId={}, page={}", userId, pageable.getPageNumber());
         Page<Transaction> transactionsPage=transactionRepository.
                 findBySenderIdOrReceiverIdOrderByInitiatedAtDesc(userId,userId,pageable);
@@ -143,12 +147,17 @@ public class TransactionServiceImpl implements TransactionService {
                 .currentPage(transactionsPage.getNumber())
                 .totalPages(transactionsPage.getTotalPages())
                 .totalElements(transactionsPage.getTotalElements())
+                .pageSize(transactionsPage.getSize())
+                .first(transactionsPage.isFirst())
+                .last(transactionsPage.isLast())
+                .hasNext(transactionsPage.hasNext())
+                .hasPrevious(transactionsPage.hasPrevious())
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public StateLogResponse getStateLog(UUID transactionId) {
+    public StateLogResponse getStateLog(String transactionId) {
         log.info("Getting state log: transactionId={}", transactionId);
 
         // Verify transaction exists

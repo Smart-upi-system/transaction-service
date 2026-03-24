@@ -16,7 +16,13 @@ import java.util.Map;
 import java.util.UUID;
 
 @Entity
-@Table(name = "transactions")
+@Table(name = "transactions", indexes = {
+        @Index(name = "idx_sender_id", columnList = "sender_id"),
+        @Index(name = "idx_receiver_id", columnList = "receiver_id"),
+        @Index(name = "idx_idempotency_key", columnList = "idempotency_key"),
+        @Index(name = "idx_status", columnList = "status"),
+        @Index(name = "idx_initiated_at", columnList = "initiated_at")
+})
 @Data
 @Builder
 @NoArgsConstructor
@@ -26,13 +32,13 @@ public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "transaction_id")
-    private UUID transactionId;
+    private String transactionId;
 
     @Column(name = "sender_id", nullable = false)
-    private UUID senderId;
+    private String senderId;
 
     @Column(name = "receiver_id", nullable = false)
-    private UUID receiverId;
+    private String receiverId;
 
     @Column(name = "sender_upi_id", nullable = false, length = 100)
     private String senderUpiId;
@@ -86,5 +92,13 @@ public class Transaction {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-
+    /**
+     * Pre-persist callback to generate ID if not set
+     */
+    @PrePersist
+    public void prePersist() {
+        if (this.transactionId == null) {
+            this.transactionId = java.util.UUID.randomUUID().toString();
+        }
+    }
 }

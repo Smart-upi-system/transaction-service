@@ -18,9 +18,9 @@ public class TransactionInitiatedEvent {
 
     private String eventId;
     private String eventType = "TransactionInitiated";
-    private UUID transactionId;
-    private UUID senderId;
-    private UUID receiverId;
+    private String transactionId;
+    private String senderId;
+    private String receiverId;
     private String senderUpiId;
     private String receiverUpiId;
     private BigDecimal amount;

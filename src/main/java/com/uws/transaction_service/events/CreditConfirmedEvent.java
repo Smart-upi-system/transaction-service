@@ -17,9 +17,9 @@ public class CreditConfirmedEvent {
 
     private String eventId;
     private String eventType = "CreditConfirmed";
-    private UUID transactionId;
-    private UUID walletId;
-    private UUID userId;
+    private String transactionId;
+    private String walletId;
+    private String userId;
     private BigDecimal amount;
     private BigDecimal newBalance;
     private LocalDateTime timestamp;

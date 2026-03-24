@@ -18,8 +18,8 @@ public class TransactionReversedEvent {
 
     private String eventId;
     private String eventType = "TransactionReversed";
-    private UUID transactionId;
-    private UUID senderId;
+    private String transactionId;
+    private String senderId;
     private BigDecimal refundedAmount;
     private String reason;
     private LocalDateTime timestamp;

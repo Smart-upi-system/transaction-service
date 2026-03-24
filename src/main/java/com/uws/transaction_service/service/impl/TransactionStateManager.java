@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -29,6 +30,7 @@ public class TransactionStateManager {
         transactionRepository.save(transaction);
 
         TransactionStateLog transactionStateLog= TransactionStateLog.builder()
+                .logId(UUID.randomUUID().toString())
                 .transactionId(transaction.getTransactionId())
                 .fromState(oldState)
                 .toState(newState)

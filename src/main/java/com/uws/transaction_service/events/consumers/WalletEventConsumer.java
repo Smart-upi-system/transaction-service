@@ -26,7 +26,7 @@ public class WalletEventConsumer {
     private final TransactionOrchestratorI orchestrator;
 
     @KafkaListener(
-            topics = "${kafka.topics.wallet-events}",
+            topics = "${kafka.topics.wallet-events:wallet.events}",
             groupId = "${spring.kafka.consumer.wallet.group-id:transaction-service-wallet-group}",
             containerFactory = "debitConfirmedKafkaListenerFactory"
     )
@@ -36,15 +36,17 @@ public class WalletEventConsumer {
         try {
             Transaction transaction=transactionRepository.findByTransactionId(event.getTransactionId());
             Map<String,Object> eventData=new HashMap<>();
-            eventData.put("creditedAmount",event.getAmount());
+            eventData.put("debitedAmount",event.getAmount());
             eventData.put("newBalance",event.getNewBalance());
             eventData.put("walletId",event.getWalletId());
 
             stateManager.transitionTo(transaction,"FRAUD_CHECK",eventData);
 
-//            / Trigger fraud check (publishes event to fraud service)
+//            // Trigger fraud check (publishes event to fraud service)
             orchestrator.triggerFraudCheck(transaction);
-        }catch (Exception e){
+
+            log.info("DebitConfirmed processed: transactionId={}", event.getTransactionId());
+        } catch (Exception e){
             log.error("Failed to handle DebitConfirmed event: transactionId={}",
                     event.getTransactionId(), e);
         }

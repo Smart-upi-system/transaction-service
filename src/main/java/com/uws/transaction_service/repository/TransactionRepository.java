@@ -13,24 +13,24 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
+public interface TransactionRepository extends JpaRepository<Transaction, String> {
 
-    Transaction findByTransactionId(UUID transactionId);
+    Transaction findByTransactionId(String transactionId);
 
-    Page<Transaction> findBySenderIdOrReceiverIdOrderByInitiatedAtDesc(UUID userId, UUID userId1, Pageable pageable);
+    Page<Transaction> findBySenderIdOrReceiverIdOrderByInitiatedAtDesc(String userId, String userId1, Pageable pageable);
 
     boolean existsByIdempotencyKey(String idempotencyKey);
 
 
     // Get sent transactions
     Page<Transaction> findBySenderIdOrderByInitiatedAtDesc(
-            UUID senderId,
+            String senderId,
             Pageable pageable
     );
 
     // Get received transactions
     Page<Transaction> findByReceiverIdOrderByInitiatedAtDesc(
-            UUID receiverId,
+            String receiverId,
             Pageable pageable
     );
 

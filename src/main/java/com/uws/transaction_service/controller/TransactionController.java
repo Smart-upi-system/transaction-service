@@ -36,13 +36,13 @@ public class TransactionController {
 
 
         TransactionResponse response=transactionService.tranfer(
-                UUID.fromString(senderId),request,correlationId);
+                senderId ,request,correlationId);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
 }
 
 @GetMapping("/{transactionId}")
-    public ResponseEntity<TransactionResponse> getTransaction(@RequestHeader("X-User-Id") String senderId, @PathVariable UUID transactionId){
+    public ResponseEntity<TransactionResponse> getTransaction(@RequestHeader("X-User-Id") String senderId, @PathVariable String transactionId){
     log.info("GET /transactions/{}", transactionId);
     TransactionResponse response=transactionService.getTransaction(senderId,transactionId);
 //   if (!response.getSenderId().equals(UUID.fromString(userId)) &&
@@ -62,7 +62,7 @@ public ResponseEntity<TransactionHistoryResponse> getHistory(@RequestHeader("X-U
                                                              @RequestParam(defaultValue = "20") int size){
     log.info("GET /transactions/history - userId: {}", userId);
 
-    TransactionHistoryResponse response=transactionService.getTransactionHistory(UUID.fromString(userId), PageRequest.of(page,size));
+    TransactionHistoryResponse response=transactionService.getTransactionHistory(userId, PageRequest.of(page,size));
 
 return ResponseEntity.ok(response);
 
@@ -73,7 +73,7 @@ return ResponseEntity.ok(response);
     @GetMapping("/{transactionId}/state-log")
     public ResponseEntity<StateLogResponse> getStateLog(
             @RequestHeader("X-User-Id") String userId,
-            @PathVariable UUID transactionId) {
+            @PathVariable String transactionId) {
 
         log.info("GET /transactions/{}/state-log", transactionId);
 

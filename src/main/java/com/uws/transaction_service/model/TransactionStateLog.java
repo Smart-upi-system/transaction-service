@@ -15,7 +15,10 @@ import java.util.Map;
 import java.util.UUID;
 
 @Entity
-@Table(name = "transaction_state_log")
+@Table(name = "transaction_state_log", indexes = {
+        @Index(name = "idx_transaction_id", columnList = "transaction_id"),
+        @Index(name = "idx_created_at", columnList = "created_at")
+})
 @Data
 @Builder
 @NoArgsConstructor
@@ -25,10 +28,10 @@ public class TransactionStateLog {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "log_id")
-    private UUID logId;
+    private String logId;
 
     @Column(name = "transaction_id", nullable = false)
-    private UUID transactionId;
+    private String transactionId;
 
     @Column(name = "from_state", nullable = false, length = 20)
     private String fromState;
@@ -43,5 +46,15 @@ public class TransactionStateLog {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    /**
+     * Pre-persist callback to generate ID if not set
+     */
+    @PrePersist
+    public void prePersist() {
+        if (this.logId == null) {
+            this.logId = java.util.UUID.randomUUID().toString();
+        }
+    }
 
 }

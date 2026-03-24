@@ -16,7 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class StateLogResponse {
-    private UUID transactionId;
+    private String transactionId;
     private int totalTransitions;
     private List<StateTransition> transitions;
 

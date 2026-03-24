@@ -17,9 +17,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TransactionResponse {
-    private UUID transactionId;
-    private UUID senderId;
-    private UUID receiverId;
+    private String transactionId;
+    private String senderId;
+    private String receiverId;
     private String senderUpiId;
     private String receiverUpiId;
     private BigDecimal amount;
