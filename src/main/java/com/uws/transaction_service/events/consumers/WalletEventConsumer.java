@@ -26,8 +26,8 @@ public class WalletEventConsumer {
     private final TransactionOrchestratorI orchestrator;
 
     @KafkaListener(
-            topics = "${kafka.topics.wallet-events:wallet.events}",
-            groupId = "${spring.kafka.consumer.wallet.group-id:transaction-service-wallet-group}",
+            topics = "${spring.kafka.topics.wallet-events}",
+            groupId = "${spring.kafka.consumer.wallet-debit.group-id:transaction-service-wallet-debit-group}",
             containerFactory = "debitConfirmedKafkaListenerFactory"
     )
     public void handleDebitConfirmed(DebitConfirmedEvent event){
@@ -58,9 +58,9 @@ public class WalletEventConsumer {
      * Handle CreditConfirmed event from Wallet Service
      */
     @KafkaListener(
-            topics = "${kafka.topics.wallet-events:wallet.events}",
-            groupId = "${spring.kafka.consumer.group-id:transaction-service-wallet-group}",
-            containerFactory = "debitConfirmedKafkaListenerFactory"
+            topics = "${spring.kafka.topics.wallet-events:wallet.events}",
+            groupId = "${spring.kafka.consumer.wallet-credit.group-id:transaction-service-wallet-credit-group}",
+            containerFactory = "creditConfirmedKafkaListenerFactory"
     )
     public void handleCreditConfirmed(CreditConfirmedEvent event){
         log.info("Received CreditConfirmed event: transactionId={}", event.getTransactionId());
