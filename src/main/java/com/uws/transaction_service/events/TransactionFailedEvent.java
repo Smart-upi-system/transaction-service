@@ -17,9 +17,9 @@ public class TransactionFailedEvent {
 
     private String eventId;
     private String eventType = "TransactionFailed";
-    private UUID transactionId;
-    private UUID senderId;
-    private UUID receiverId;
+    private String transactionId;
+    private String senderId;
+    private String receiverId;
     private String reason;
     private String failedAtState;
     private LocalDateTime timestamp;

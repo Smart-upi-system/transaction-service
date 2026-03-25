@@ -18,9 +18,9 @@ public class DebitConfirmedEvent {
 
     private String eventId;
     private String eventType = "DebitConfirmed";
-    private UUID transactionId;
-    private UUID walletId;
-    private UUID userId;
+    private String transactionId;
+    private String walletId;
+    private String userId;
     private BigDecimal amount;
     private BigDecimal newBalance;
     private LocalDateTime timestamp;

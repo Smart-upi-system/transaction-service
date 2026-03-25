@@ -18,7 +18,7 @@ public class FraudCheckPassedEvent {
 
     private String eventId;
     private String eventType = "FraudCheckPassed";
-    private UUID transactionId;
+    private String transactionId;
     private int riskScore;
     private String checkedBy;
     private LocalDateTime timestamp;

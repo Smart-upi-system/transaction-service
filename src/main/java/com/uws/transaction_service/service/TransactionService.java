@@ -11,11 +11,11 @@ import org.springframework.data.domain.PageRequest;
 import java.util.UUID;
 
 public interface TransactionService {
-    TransactionResponse tranfer(UUID uuid, @Valid TransferRequest request, String correlationId) throws InvalidTransactionException;
+    TransactionResponse tranfer(String uuid, @Valid TransferRequest request, String correlationId) throws InvalidTransactionException;
 
-    TransactionResponse getTransaction(String senderId, UUID transactionId);
+    TransactionResponse getTransaction(String senderId, String transactionId);
 
-    TransactionHistoryResponse getTransactionHistory(UUID uuid, PageRequest of);
+    TransactionHistoryResponse getTransactionHistory(String uuid, PageRequest of);
 
-    StateLogResponse getStateLog(UUID transactionId);
+    StateLogResponse getStateLog(String transactionId);
 }
