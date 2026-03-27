@@ -1,6 +1,11 @@
 package com.uws.transaction_service.grpc;
 
-import com.uws.wallet.grpc.proto.*;
+import com.uws.wallet.grpc.proto.WalletServiceGrpc;
+import com.uws.wallet.grpc.proto.DebitRequest;
+import com.uws.wallet.grpc.proto.WalletResponse;
+import com.uws.wallet.grpc.proto.BalanceResponse;
+import com.uws.wallet.grpc.proto.GetBalanceRequest;
+import com.uws.wallet.grpc.proto.CreditRequest;
 import io.grpc.Status; // Required for Status.Code
 import io.grpc.StatusRuntimeException;
 import lombok.extern.slf4j.Slf4j;

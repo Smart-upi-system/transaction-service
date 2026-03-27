@@ -1,6 +1,12 @@
 package com.uws.transaction_service.grpc;
 
-import com.uws.user.grpc.proto.*;
+import com.uws.user.grpc.proto.GetUserByUpiIdRequest;
+import com.uws.user.grpc.proto.GetUserProfileRequest;
+import com.uws.user.grpc.proto.UserProfileResponse;
+import com.uws.user.grpc.proto.UserResponse;
+import com.uws.user.grpc.proto.UserServiceGrpc;
+import com.uws.user.grpc.proto.ValidateUserRequest;
+import com.uws.user.grpc.proto.ValidationResponse;
 import io.grpc.StatusRuntimeException;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.client.inject.GrpcClient;
