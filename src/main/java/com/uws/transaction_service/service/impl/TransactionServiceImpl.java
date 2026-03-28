@@ -3,10 +3,7 @@ package com.uws.transaction_service.service.impl;
 import com.uws.transaction_service.grpc.UserServiceGrpcClient;
 import com.uws.transaction_service.model.Transaction;
 import com.uws.transaction_service.model.TransactionStateLog;
-import com.uws.transaction_service.model.dtos.StateLogResponse;
-import com.uws.transaction_service.model.dtos.TransactionHistoryResponse;
-import com.uws.transaction_service.model.dtos.TransactionResponse;
-import com.uws.transaction_service.model.dtos.TransferRequest;
+import com.uws.transaction_service.model.dtos.*;
 import com.uws.transaction_service.repository.TransactionLogRepository;
 import com.uws.transaction_service.repository.TransactionRepository;
 import com.uws.transaction_service.service.TransactionOrchestratorI;
@@ -114,11 +111,11 @@ public class TransactionServiceImpl implements TransactionService {
 
     }
 
-    private String getSenderUpiId(String senderId) {
-        // In production: Call User Service gRPC to get UPI ID
-        // For now, return placeholder
-        return "sender@wallet";
-    }
+//    private String getSenderUpiId(String senderId) {
+//        // In production: Call User Service gRPC to get UPI ID
+//        // For now, return placeholder
+//        return "sender@wallet";
+//    }
 
     @Override
     @Transactional(readOnly = true)
@@ -181,5 +178,40 @@ public class TransactionServiceImpl implements TransactionService {
                 .transitions(transitions)
                 .build();
 
+    }
+
+    @Override
+    @Transactional
+    public TransactionResponse deposit(String userId, DepositRequest request) {
+        // 1. Handle Idempotency
+        String key = idempotencyManager.generateOrGetKey(request.getIdempotencyKey());
+        if (idempotencyManager.isDuplicate(key)) {
+            return getTransaction(userId, idempotencyManager.getTransactionId(key));
+        }
+
+        // 2. Create Deposit Transaction Record
+        Transaction transaction = Transaction.builder()
+                .senderId("SELF_OR_SYSTEM") // Or "BANK_GATEWAY"
+                .receiverId(userId)
+                .receiverUpiId(request.getUpiId())
+                .amount(request.getAmount())
+                .currency("INR")
+                .status("INITIATED")
+                .type("DEPOSIT")
+                .remarks(request.getDescription())
+                .idempotencyKey(key)
+                .initiatedAt(LocalDateTime.now())
+                .build();
+
+        transactionRepository.save(transaction);
+
+        // 3. Mark processed in Idempotency Manager
+        idempotencyManager.markAsProcessed(key, transaction.getTransactionId());
+
+        // 4. Trigger the Orchestrator
+        // Since this is a deposit, we jump straight to crediting the wallet
+        transactionOrchestrator.directCredit(transaction);
+
+        return modelMapper.map(transaction, TransactionResponse.class);
     }
 }

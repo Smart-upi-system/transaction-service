@@ -1,9 +1,6 @@
 package com.uws.transaction_service.service;
 
-import com.uws.transaction_service.model.dtos.StateLogResponse;
-import com.uws.transaction_service.model.dtos.TransactionHistoryResponse;
-import com.uws.transaction_service.model.dtos.TransactionResponse;
-import com.uws.transaction_service.model.dtos.TransferRequest;
+import com.uws.transaction_service.model.dtos.*;
 import jakarta.transaction.InvalidTransactionException;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
@@ -18,4 +15,6 @@ public interface TransactionService {
     TransactionHistoryResponse getTransactionHistory(String uuid, PageRequest of);
 
     StateLogResponse getStateLog(String transactionId);
+
+    TransactionResponse deposit(String userId, DepositRequest request);
 }

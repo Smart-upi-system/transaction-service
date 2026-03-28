@@ -22,31 +22,30 @@ public class TransactionStateManager {
     private final TransactionLogRepository transactionLogRepository;
 
     @Transactional
-    public void transitionTo(Transaction transaction, String newState, Map<String,Object> eventData){
-        String oldState=transaction.getStatus();
-        validateStateTransition(oldState,newState);
+    public Transaction transitionTo(Transaction transaction, String newState, Map<String,Object> eventData){
+        String oldState = transaction.getStatus();
+        validateStateTransition(oldState, newState);
 
         transaction.setStatus(newState);
-        transactionRepository.save(transaction);
+        // Return the result of save() to get the updated version/state
+        Transaction updatedTransaction = transactionRepository.save(transaction);
 
-        TransactionStateLog transactionStateLog= TransactionStateLog.builder()
+        TransactionStateLog logEntry = TransactionStateLog.builder()
                 .logId(UUID.randomUUID().toString())
                 .transactionId(transaction.getTransactionId())
                 .fromState(oldState)
                 .toState(newState)
                 .eventData(eventData)
                 .build();
+        transactionLogRepository.save(logEntry);
 
-        transactionLogRepository.save(transactionStateLog);
-        log.info("Transaction state transition: {} -> {} for txnId: {}",
-                oldState, newState, transaction.getTransactionId());
-
-
+        return updatedTransaction;
     }
+
 
     private void validateStateTransition(String oldState, String newState) {
         Map<String, String[]> validTransitions = new HashMap<>();
-        validTransitions.put("INITIATED", new String[]{"VALIDATING", "FAILED"});
+        validTransitions.put("INITIATED", new String[]{"VALIDATING", "CREDITING", "FAILED"});
         validTransitions.put("VALIDATING", new String[]{"DEBITING", "FAILED"});
         validTransitions.put("DEBITING", new String[]{"FRAUD_CHECK", "FAILED"});
         validTransitions.put("FRAUD_CHECK", new String[]{"CREDITING", "REVERSED"});

@@ -16,4 +16,6 @@ import com.uws.transaction_service.model.Transaction;
      void failTransaction(Transaction transaction, String reason);
 
       void compensateTransaction(Transaction transaction, String reason);
+
+     void directCredit(Transaction transaction);
 }

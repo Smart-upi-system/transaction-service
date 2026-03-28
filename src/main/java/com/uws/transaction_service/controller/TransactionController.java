@@ -1,9 +1,6 @@
 package com.uws.transaction_service.controller;
 
-import com.uws.transaction_service.model.dtos.StateLogResponse;
-import com.uws.transaction_service.model.dtos.TransactionHistoryResponse;
-import com.uws.transaction_service.model.dtos.TransactionResponse;
-import com.uws.transaction_service.model.dtos.TransferRequest;
+import com.uws.transaction_service.model.dtos.*;
 import com.uws.transaction_service.service.TransactionService;
 import jakarta.transaction.InvalidTransactionException;
 import jakarta.validation.Valid;
@@ -82,8 +79,16 @@ return ResponseEntity.ok(response);
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/deposit")
+    public ResponseEntity<TransactionResponse> deposit(
+            @RequestHeader("X-User-Id") String userId,
+            @Valid @RequestBody DepositRequest request) {
 
+        log.info("POST /transactions/deposit - userId: {}, amount: {}", userId, request.getAmount());
 
+        TransactionResponse response = transactionService.deposit(userId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 
 
 }
