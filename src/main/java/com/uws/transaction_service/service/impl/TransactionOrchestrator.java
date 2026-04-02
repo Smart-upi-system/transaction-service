@@ -6,6 +6,8 @@ import com.uws.transaction_service.grpc.WalletServiceGrpcClient;
 import com.uws.transaction_service.model.Transaction;
 import com.uws.transaction_service.repository.TransactionRepository;
 import com.uws.transaction_service.service.TransactionOrchestratorI;
+import com.uws.wallet.grpc.proto.CreditRequest;
+import com.uws.wallet.grpc.proto.WalletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -211,4 +213,49 @@ public class TransactionOrchestrator implements TransactionOrchestratorI {
             throw new RuntimeException("Critical Saga Compensation Failure", e);
         }
     }
+
+    @Override
+    @Transactional
+    public void directCredit(Transaction transaction) {
+        log.info("Starting direct credit: txnId={}", transaction.getTransactionId());
+
+        try {
+            // 1. Validated transition: INITIATED -> CREDITING
+            transaction = stateManager.transitionTo(transaction, "CREDITING", new HashMap<>());
+
+            UUID receiverUuid = UUID.fromString(transaction.getReceiverId());
+            UUID txnUuid = UUID.fromString(transaction.getTransactionId());
+
+            // 2. Execute gRPC call
+            walletServiceGrpcClient.credit(
+                    receiverUuid,
+                    receiverUuid,
+                    transaction.getAmount(),
+                    txnUuid,
+                    transaction.getIdempotencyKey() + ":direct"
+            );
+
+            // 3. Finalize: CREDITING -> SUCCESS
+            transaction = stateManager.transitionTo(transaction, "SUCCESS", new HashMap<>());
+
+            transaction.setCompletedAt(LocalDateTime.now());
+            transactionRepository.save(transaction);
+
+        } catch (Exception e) {
+            log.error("Direct credit failed for txn: {}", transaction.getTransactionId(), e);
+
+            // Handle failure state
+            Map<String, Object> errorData = new HashMap<>();
+            errorData.put("reason", e.getMessage());
+            stateManager.transitionTo(transaction, "FAILED", errorData);
+
+            transaction.setFailureReason(e.getMessage());
+            transactionRepository.save(transaction);
+        }
+    }
+
+
+
+
+
 }
