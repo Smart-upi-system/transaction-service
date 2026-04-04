@@ -7,7 +7,7 @@ import com.uws.transaction_service.model.Transaction;
 
       void completeTransaction(Transaction transaction);
 
-      void senderDebit(Transaction transaction);
+      void senderDebit(Transaction transaction,String walletId);
 
       void triggerFraudCheck(Transaction transaction);
 

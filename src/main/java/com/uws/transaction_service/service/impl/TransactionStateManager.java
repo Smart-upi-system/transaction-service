@@ -31,7 +31,6 @@ public class TransactionStateManager {
         Transaction updatedTransaction = transactionRepository.save(transaction);
 
         TransactionStateLog logEntry = TransactionStateLog.builder()
-                .logId(UUID.randomUUID().toString())
                 .transactionId(transaction.getTransactionId())
                 .fromState(oldState)
                 .toState(newState)
@@ -49,7 +48,7 @@ public class TransactionStateManager {
         validTransitions.put("VALIDATING", new String[]{"DEBITING", "FAILED"});
         validTransitions.put("DEBITING", new String[]{"FRAUD_CHECK", "FAILED"});
         validTransitions.put("FRAUD_CHECK", new String[]{"CREDITING", "REVERSED"});
-        validTransitions.put("CREDITING", new String[]{"SUCCESS", "REVERSED"});
+        validTransitions.put("CREDITING", new String[]{"SUCCESS", "REVERSED","FAILED"});
         validTransitions.put("SUCCESS", new String[]{});
         validTransitions.put("FAILED", new String[]{});
         validTransitions.put("REVERSED", new String[]{});

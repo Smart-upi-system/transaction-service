@@ -52,7 +52,7 @@ public class TransactionOrchestrator implements TransactionOrchestratorI {
 
     @Override
     @Transactional
-    public void senderDebit(Transaction transaction) {
+    public void senderDebit(Transaction transaction,String walletId) {
         log.info("Debiting sender: transactionId={}, senderId={}, amount={}",
                 transaction.getTransactionId(), transaction.getSenderId(), transaction.getAmount());
 
@@ -65,7 +65,7 @@ public class TransactionOrchestrator implements TransactionOrchestratorI {
 
             walletServiceGrpcClient.debit(
                     senderUuid,                         // userId
-                    senderUuid,                         // walletId (using senderId as walletId)
+                    UUID.fromString(walletId),            // walletId (using senderId as walletId)
                     transaction.getAmount(),
                     txnUuid,
                     transaction.getIdempotencyKey() + ":debit"
@@ -223,12 +223,13 @@ public class TransactionOrchestrator implements TransactionOrchestratorI {
             // 1. Validated transition: INITIATED -> CREDITING
             transaction = stateManager.transitionTo(transaction, "CREDITING", new HashMap<>());
 
+            UUID senderUuid = UUID.fromString(transaction.getSenderId());
             UUID receiverUuid = UUID.fromString(transaction.getReceiverId());
             UUID txnUuid = UUID.fromString(transaction.getTransactionId());
 
             // 2. Execute gRPC call
             walletServiceGrpcClient.credit(
-                    receiverUuid,
+                    senderUuid,
                     receiverUuid,
                     transaction.getAmount(),
                     txnUuid,
@@ -245,12 +246,13 @@ public class TransactionOrchestrator implements TransactionOrchestratorI {
             log.error("Direct credit failed for txn: {}", transaction.getTransactionId(), e);
 
             // Handle failure state
-            Map<String, Object> errorData = new HashMap<>();
-            errorData.put("reason", e.getMessage());
-            stateManager.transitionTo(transaction, "FAILED", errorData);
+            String targetState = "CREDITING".equals(transaction.getStatus()) ? "REVERSED" : "FAILED";
 
-            transaction.setFailureReason(e.getMessage());
+            Map<String, Object> eventData = new HashMap<>();
+            eventData.put("reason", e.getMessage());
+            stateManager.transitionTo(transaction, targetState, eventData);
             transactionRepository.save(transaction);
+            throw  e;
         }
     }
 

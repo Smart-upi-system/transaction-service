@@ -47,14 +47,14 @@ public class TransactionStateLog {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    /**
-     * Pre-persist callback to generate ID if not set
-     */
-    @PrePersist
-    public void prePersist() {
-        if (this.logId == null) {
-            this.logId = java.util.UUID.randomUUID().toString();
-        }
-    }
+//    /**
+//     * Pre-persist callback to generate ID if not set
+//     */
+//    @PrePersist
+//    public void prePersist() {
+//        if (this.logId == null) {
+//            this.logId = java.util.UUID.randomUUID().toString();
+//        }
+//    }
 
 }

@@ -19,7 +19,7 @@ import java.util.UUID;
 @Service
 public class WalletServiceGrpcClient {
 
-    @GrpcClient("wallet-service")
+    @GrpcClient("wallet")
     private WalletServiceGrpc.WalletServiceBlockingStub walletServiceStub;
 
     /**

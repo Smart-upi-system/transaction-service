@@ -61,6 +61,7 @@ public class TransactionServiceImpl implements TransactionService {
 
 //        step 3 : get receiver by upi id
         UserResponse receiver = userServiceGrpcClient.getUserByUpiId(request.getReceiverUpiId());
+        System.out.println("recevier user id========================"+receiver);
         if(!receiver.getSuccess() || !receiver.getActive()){
             throw new RuntimeException("Receiver not found: " + request.getReceiverUpiId());
         }
@@ -71,8 +72,9 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // Step 5: Get sender UPI ID
-        String senderUpiId = userServiceGrpcClient.getUserByUpiId(senderId).getUpiId();
-
+        String senderUpiId = String.valueOf(userServiceGrpcClient.getUserProfile(senderId).getUpiId());
+        UserResponse userResponse=userServiceGrpcClient.getUserByUpiId(senderUpiId);
+        String senderWalletId=userResponse.getWalletId();
         Map<String,Object> metdaData = new HashMap<>();
         metdaData.put("senderKycVerified",senderValidation.getKycVerified());
         metdaData.put("receiverKycVerified",receiver.getKycVerified());
@@ -104,7 +106,7 @@ public class TransactionServiceImpl implements TransactionService {
         transactionOrchestrator.initiateTransaction(transaction);
 
         // Step 9: Trigger debit (state will be VALIDATING at this point)
-        transactionOrchestrator.senderDebit(transaction);
+        transactionOrchestrator.senderDebit(transaction,senderWalletId);
 
         TransactionResponse transactionResponse= modelMapper.map(transaction,TransactionResponse.class);
         return  transactionResponse;
@@ -191,13 +193,14 @@ public class TransactionServiceImpl implements TransactionService {
 
         // 2. Create Deposit Transaction Record
         Transaction transaction = Transaction.builder()
-                .senderId("SELF_OR_SYSTEM") // Or "BANK_GATEWAY"
+                .senderId(userId) // Or "BANK_GATEWAY"
+                .senderUpiId(request.getUpiId())
                 .receiverId(userId)
                 .receiverUpiId(request.getUpiId())
                 .amount(request.getAmount())
                 .currency("INR")
                 .status("INITIATED")
-                .type("DEPOSIT")
+                .type("DEPOSIT - SelfFund")
                 .remarks(request.getDescription())
                 .idempotencyKey(key)
                 .initiatedAt(LocalDateTime.now())
