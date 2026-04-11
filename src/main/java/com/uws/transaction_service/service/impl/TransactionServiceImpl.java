@@ -80,9 +80,14 @@ public class TransactionServiceImpl implements TransactionService {
         metdaData.put("receiverKycVerified",receiver.getKycVerified());
         metdaData.put("initiatedBy","API");
 
+
+        String responseWalletId=receiver.getWalletId();
+
         Transaction transaction=Transaction.builder()
                 .senderId(senderId)
                 .receiverId(receiver.getUserId())
+                .senderWalletId(senderWalletId)
+                .receiverWalletId(responseWalletId)
                 .senderUpiId(senderUpiId)
                 .receiverUpiId(request.getReceiverUpiId())
                 .amount(request.getAmount())
@@ -106,7 +111,7 @@ public class TransactionServiceImpl implements TransactionService {
         transactionOrchestrator.initiateTransaction(transaction);
 
         // Step 9: Trigger debit (state will be VALIDATING at this point)
-        transactionOrchestrator.senderDebit(transaction,senderWalletId);
+//        transactionOrchestrator.senderDebit(transaction,senderWalletId);
 
         TransactionResponse transactionResponse= modelMapper.map(transaction,TransactionResponse.class);
         return  transactionResponse;
@@ -190,6 +195,10 @@ public class TransactionServiceImpl implements TransactionService {
         if (idempotencyManager.isDuplicate(key)) {
             return getTransaction(userId, idempotencyManager.getTransactionId(key));
         }
+        UserResponse receiver = userServiceGrpcClient.getUserByUpiId(request.getUpiId());
+        String receiverWalletId=receiver.getWalletId();
+
+        System.out.println("recevier user id========================"+receiver);
 
         // 2. Create Deposit Transaction Record
         Transaction transaction = Transaction.builder()
@@ -197,6 +206,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .senderUpiId(request.getUpiId())
                 .receiverId(userId)
                 .receiverUpiId(request.getUpiId())
+                .receiverWalletId(receiverWalletId)
                 .amount(request.getAmount())
                 .currency("INR")
                 .status("INITIATED")

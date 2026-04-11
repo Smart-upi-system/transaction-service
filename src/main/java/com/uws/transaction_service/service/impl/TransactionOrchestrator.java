@@ -48,6 +48,7 @@ public class TransactionOrchestrator implements TransactionOrchestratorI {
 
         eventProducer.publishTransactionInitiated(event);
         stateManager.transitionTo(transaction, "VALIDATING", new HashMap<>());
+        triggerFraudCheck(transaction);
     }
 
     @Override
@@ -107,10 +108,10 @@ public class TransactionOrchestrator implements TransactionOrchestratorI {
             // Converting String IDs to UUID for gRPC Client
             UUID receiverUuid = UUID.fromString(transaction.getReceiverId());
             UUID txnUuid = UUID.fromString(transaction.getTransactionId());
-
+            UUID receiverWalletUuid = UUID.fromString(transaction.getReceiverWalletId());
             walletServiceGrpcClient.credit(
                     receiverUuid,                       // userId
-                    receiverUuid,                       // walletId
+                    receiverWalletUuid,                       // walletId
                     transaction.getAmount(),
                     txnUuid,
                     transaction.getIdempotencyKey() + ":credit"
@@ -182,10 +183,11 @@ public class TransactionOrchestrator implements TransactionOrchestratorI {
             // Converting String IDs to UUID for gRPC Client
             UUID senderUuid = UUID.fromString(transaction.getSenderId());
             UUID txnUuid = UUID.fromString(transaction.getTransactionId());
+            UUID senderWalletId = UUID.fromString(transaction.getSenderWalletId());
 
             walletServiceGrpcClient.credit(
                     senderUuid,
-                    senderUuid,
+                    senderWalletId,
                     transaction.getAmount(),
                     txnUuid,
                     transaction.getIdempotencyKey() + ":compensation"
@@ -226,11 +228,11 @@ public class TransactionOrchestrator implements TransactionOrchestratorI {
             UUID senderUuid = UUID.fromString(transaction.getSenderId());
             UUID receiverUuid = UUID.fromString(transaction.getReceiverId());
             UUID txnUuid = UUID.fromString(transaction.getTransactionId());
-
+            UUID receiverWalletUuid = UUID.fromString(transaction.getReceiverWalletId());
             // 2. Execute gRPC call
             walletServiceGrpcClient.credit(
-                    senderUuid,
                     receiverUuid,
+                    receiverWalletUuid,
                     transaction.getAmount(),
                     txnUuid,
                     transaction.getIdempotencyKey() + ":direct"

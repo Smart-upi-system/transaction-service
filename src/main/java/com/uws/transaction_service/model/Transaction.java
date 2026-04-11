@@ -46,6 +46,12 @@ public class Transaction {
     @Column(name = "receiver_upi_id", nullable = false, length = 100)
     private String receiverUpiId;
 
+
+    private String senderWalletId;
+
+
+    private String receiverWalletId;
+
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
 

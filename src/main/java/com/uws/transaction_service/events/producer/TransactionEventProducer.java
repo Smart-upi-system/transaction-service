@@ -8,8 +8,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Component
@@ -21,13 +24,15 @@ public class TransactionEventProducer {
     @Value("${spring.kafka.topics.transaction-events:transaction.events}")
     private String transactionEventsTopic;
 
-    @Value("${spring.kafka.topics.fraud-events:fraud.events}")
+    @Value("${spring.kafka.topics.fraud-requests:fraud.requests}")
     private String fraudEventsTopic;
 
 
-    public void publishTransactionInitiated(TransactionInitiatedEvent transactionInitiatedEvent) {
-        log.info("Publishing TransactionInitiated: {}", transactionInitiatedEvent.getTransactionId());
-        kafkaTemplate.send(transactionEventsTopic,transactionInitiatedEvent.getTransactionId().toString(),transactionInitiatedEvent);
+    public void publishTransactionInitiated(TransactionInitiatedEvent event) {
+        log.info("Publishing TransactionInitiated: {}", event.getTransactionId());
+
+        // Fix: Ensure the event object is passed as the third argument
+        kafkaTemplate.send(transactionEventsTopic, event.getTransactionId().toString(), event);
     }
 
     public void publishToFraudService(TransactionInitiatedEvent fraudCheckReq) {

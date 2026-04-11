@@ -26,7 +26,7 @@ public class WalletEventConsumer {
     private final TransactionOrchestratorI orchestrator;
 
     @KafkaListener(
-            topics = "${spring.kafka.topics.wallet-events}",
+            topics = "${spring.kafka.topics.wallet-debit:wallet.debited}",
             groupId = "${spring.kafka.consumer.wallet-debit.group-id:transaction-service-wallet-debit-group}",
             containerFactory = "debitConfirmedKafkaListenerFactory"
     )
@@ -34,16 +34,16 @@ public class WalletEventConsumer {
         log.info("Received DebitConfirmed event: transactionId={}", event.getTransactionId());
 
         try {
-            Transaction transaction=transactionRepository.findByTransactionId(event.getTransactionId());
-            Map<String,Object> eventData=new HashMap<>();
-            eventData.put("debitedAmount",event.getAmount());
-            eventData.put("newBalance",event.getNewBalance());
-            eventData.put("walletId",event.getWalletId());
+            Transaction transaction = transactionRepository.findByTransactionId(event.getTransactionId());
 
-            stateManager.transitionTo(transaction,"FRAUD_CHECK",eventData);
+            Map<String, Object> eventData = new HashMap<>();
+            eventData.put("debitedAmount", event.getAmount());
+            eventData.put("newBalance", event.getNewBalance());
+            eventData.put("walletId", event.getWalletId());
 
-//            // Trigger fraud check (publishes event to fraud service)
-            orchestrator.triggerFraudCheck(transaction);
+            // DEBITING -> CREDITING  (remove the FRAUD_CHECK step — fraud already passed)
+            stateManager.transitionTo(transaction, "CREDITING", eventData);
+            orchestrator.creditReceiver(transaction);
 
             log.info("DebitConfirmed processed: transactionId={}", event.getTransactionId());
         } catch (Exception e){
@@ -58,7 +58,7 @@ public class WalletEventConsumer {
      * Handle CreditConfirmed event from Wallet Service
      */
     @KafkaListener(
-            topics = "${spring.kafka.topics.wallet-events:wallet.events}",
+            topics = "${spring.kafka.topics.wallet-credit:wallet.credited",
             groupId = "${spring.kafka.consumer.wallet-credit.group-id:transaction-service-wallet-credit-group}",
             containerFactory = "creditConfirmedKafkaListenerFactory"
     )
