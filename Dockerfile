@@ -1,30 +1,32 @@
-FROM eclipse-temurin:17-jdk-alpine AS build
+#/Dockerfile (same pattern for all services)
 
+# Stage 1: Build
+FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
-
-# Copy Maven files
 COPY pom.xml .
+# Download dependencies first (cached layer)
+RUN mvn dependency:go-offline -B
 COPY src ./src
+RUN mvn clean package -DskipTests
 
-# Build the application
-RUN apk add --no-cache maven && \
-    mvn clean package -DskipTests && \
-    mv target/*.jar app.jar
-
-# Runtime stage
-FROM eclipse-temurin:17-jre-alpine
-
+# Stage 2: Run
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Copy the JAR from build stage
-COPY --from=build /app/target/*.jar app.jar
+# Add non-root user for security
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring
 
-# Expose port
+COPY --from=builder /app/target/*.jar app.jar
+
 EXPOSE 4003
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:4003/transaction/health || exit 1
 
-## Health check
-#HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-#  CMD wget --no-verbose --tries=1 --spider http://localhost:8081/auth/health || exit 1
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=75.0", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-jar", "app.jar"]
