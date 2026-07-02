@@ -5,21 +5,14 @@ on:
     branches:
       - main
       - develop
-    paths:
-      - 'transaction-service/**'
   pull_request:
     branches:
       - main
       - develop
-    paths:
-      - 'transaction-service/**'
 
 jobs:
   verify:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./transaction-service/transaction-service
 
     steps:
       - name: Checkout code
@@ -40,16 +33,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: transaction-service-jar
-          path: transaction-service/transaction-service/target/*.jar
+          path: target/*.jar
           retention-days: 1
 
   build-and-push:
     needs: verify
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./transaction-service/transaction-service
 
     steps:
       - name: Checkout code
@@ -59,7 +49,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: transaction-service-jar
-          path: transaction-service/transaction-service/target
+          path: target
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -70,7 +60,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./transaction-service/transaction-service
+          context: .
           push: true
           tags: |
             darshthakur/transaction-service:latest
