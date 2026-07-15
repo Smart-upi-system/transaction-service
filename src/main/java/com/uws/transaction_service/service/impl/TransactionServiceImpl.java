@@ -19,6 +19,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -104,9 +106,17 @@ public class TransactionServiceImpl implements TransactionService {
         transactionRepository.save(transaction);
         log.info("Transaction created: transactionId={}", transaction.getTransactionId());
 
-        // Step 7: Mark as processed (idempotency)
-        idempotencyManager.markAsProcessed(idempotencyKey, transaction.getTransactionId());
+        final String finalKey=idempotencyKey;
+        log.info("Idempotency key={}", idempotencyKey);
+        final String finalTransactionId=transaction.getTransactionId();
 
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                idempotencyManager.markAsProcessed(finalKey, finalTransactionId);
+            }
+        });
         // Step 8: Initiate Saga workflow
         transactionOrchestrator.initiateTransaction(transaction);
 
