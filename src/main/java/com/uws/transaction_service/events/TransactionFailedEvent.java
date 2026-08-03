@@ -20,6 +20,8 @@ public class TransactionFailedEvent {
     private String transactionId;
     private String senderId;
     private String receiverId;
+    private String senderUpiId;
+    private String receiverUpiId;
     private String reason;
     private String failedAtState;
     private LocalDateTime timestamp;

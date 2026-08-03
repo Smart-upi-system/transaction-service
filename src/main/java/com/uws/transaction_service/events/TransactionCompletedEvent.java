@@ -21,6 +21,9 @@ public class TransactionCompletedEvent {
     private String transactionId;
     private String senderId;
     private String receiverId;
+    private String senderUpiId;
+    private String receiverUpiId;
+    private String remarks;
     private BigDecimal amount;
     private String currency;
     private LocalDateTime timestamp;

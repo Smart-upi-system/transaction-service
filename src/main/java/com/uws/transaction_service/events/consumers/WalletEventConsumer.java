@@ -58,7 +58,7 @@ public class WalletEventConsumer {
      * Handle CreditConfirmed event from Wallet Service
      */
     @KafkaListener(
-            topics = "${spring.kafka.topics.wallet-credit:wallet.credited",
+            topics = "${spring.kafka.topics.wallet-credit:wallet.credited}",
             groupId = "${spring.kafka.consumer.wallet-credit.group-id:transaction-service-wallet-credit-group}",
             containerFactory = "creditConfirmedKafkaListenerFactory"
     )

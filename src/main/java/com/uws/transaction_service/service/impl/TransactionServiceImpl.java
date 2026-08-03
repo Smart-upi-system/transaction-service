@@ -153,16 +153,16 @@ public class TransactionServiceImpl implements TransactionService {
             }
         });
 
-        // Step 8: Initiate the Saga workflow — the orchestrator drives debit, validation,
+        // Step 8: Build the response from the transaction as created (INITIATED). This must
+        // happen before the saga runs: initiateTransaction() mutates the in-memory status to
+        // VALIDATING, which would otherwise leak into the response.
+        TransactionResponse transactionResponse = modelMapper.map(transaction, TransactionResponse.class);
+
+        // Step 9: Initiate the Saga workflow — the orchestrator drives debit, validation,
         // and credit steps asynchronously (via Kafka).
         transactionOrchestrator.initiateTransaction(transaction);
 
-        // Step 9: (Commented out) Optionally trigger debit directly — state is VALIDATING here.
-        // transactionOrchestrator.senderDebit(transaction,senderWalletId);
-
-        // Return the created transaction mapped to the response DTO.
-        TransactionResponse transactionResponse= modelMapper.map(transaction,TransactionResponse.class);
-        return  transactionResponse;
+        return transactionResponse;
 
     }
 

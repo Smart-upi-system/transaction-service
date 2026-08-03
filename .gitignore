@@ -33,3 +33,4 @@ build/
 .vscode/
 /pgdata
 /.claude/settings.local.json
+/.claude/
