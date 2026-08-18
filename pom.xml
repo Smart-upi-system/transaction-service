@@ -57,6 +57,13 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!-- watchlog appender: streams this service's logs to the watchlog platform -->
+        <dependency>
+            <groupId>com.datalog</groupId>
+            <artifactId>watchlog-appender</artifactId>
+            <version>0.1.0</version>
+        </dependency>
+
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>

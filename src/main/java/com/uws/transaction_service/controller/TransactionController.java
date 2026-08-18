@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -88,6 +89,21 @@ public class TransactionController {
 
         TransactionResponse response = transactionService.deposit(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Lightweight liveness probe. No auth headers required so it can be
+     * reached publicly via nginx (:8080/transaction/health) and used by
+     * Docker/load-balancer health checks. For deep dependency status
+     * (db, kafka, redis) use the Actuator endpoint at /actuator/health.
+     */
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, Object>> health() {
+        log.info("GET /transaction/health");
+        Map<String, Object> status = new java.util.LinkedHashMap<>();
+        status.put("status", "UP");
+        status.put("service", "transaction-service");
+        return ResponseEntity.ok(status);
     }
 
 

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Keep the original console output format. -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Stream logs to watchlog. Configure via env so the same file works on host and in Docker:
+         - WATCHLOG_URL:      watchlog ingest base URL (host run defaults to localhost)
+         - WATCHLOG_SERVICE_ID: this service's registered UUID in watchlog (required)
+    -->
+    <appender name="WATCHLOG" class="com.datalog.watchlog.appender.WatchlogHttpAppender">
+        <url>${WATCHLOG_URL:-http://localhost:7000}</url>
+        <serviceId>${WATCHLOG_SERVICE_ID}</serviceId>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="WATCHLOG"/>
+    </root>
+</configuration>
