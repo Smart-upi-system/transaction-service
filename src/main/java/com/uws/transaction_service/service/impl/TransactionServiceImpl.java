@@ -1,6 +1,7 @@
 package com.uws.transaction_service.service.impl;
 
 import com.uws.transaction_service.grpc.UserServiceGrpcClient;
+import com.uws.transaction_service.grpc.WalletServiceGrpcClient;
 import com.uws.transaction_service.model.Transaction;
 import com.uws.transaction_service.model.TransactionStateLog;
 import com.uws.transaction_service.model.dtos.*;
@@ -10,6 +11,7 @@ import com.uws.transaction_service.service.TransactionOrchestratorI;
 import com.uws.user.grpc.proto.*;
 import com.uws.transaction_service.service.TransactionService;
 import com.uws.transaction_service.utils.IdempotencyManager;
+import com.uws.wallet.grpc.proto.BalanceResponse;
 import jakarta.transaction.InvalidTransactionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -49,8 +52,10 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionLogRepository logRepository;
     private final TransactionOrchestrator transactionOrchestrator;
     private final UserServiceGrpcClient userServiceGrpcClient;
+    private final WalletServiceGrpcClient walletServiceGrpcClient;
     private final IdempotencyManager idempotencyManager;
     private final ModelMapper modelMapper;
+
 
     /**
      * Initiates a P2P money transfer from the given sender to the receiver identified by UPI ID.
@@ -107,6 +112,10 @@ public class TransactionServiceImpl implements TransactionService {
         UserResponse userResponse=userServiceGrpcClient.getUserByUpiId(senderUpiId);
         String senderWalletId=userResponse.getWalletId();
 
+        BalanceResponse balanceResponse=walletServiceGrpcClient.getBalance(UUID.fromString(senderWalletId));
+        if(balanceResponse.getSuccess() && BigDecimal.valueOf(balanceResponse.getBalance()).compareTo(request.getAmount()) <= 0){
+            throw new InvalidTransactionException("Insufficient balance");
+        }
         // Step 6: Build metadata — attach audit/context info (KYC state, initiation source).
         Map<String,Object> metdaData = new HashMap<>();
         metdaData.put("senderKycVerified",senderValidation.getKycVerified());
