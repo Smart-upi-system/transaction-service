@@ -114,7 +114,16 @@ public class TransactionServiceImpl implements TransactionService {
 
         BalanceResponse balanceResponse=walletServiceGrpcClient.getBalance(UUID.fromString(senderWalletId));
         if(balanceResponse.getSuccess() && BigDecimal.valueOf(balanceResponse.getBalance()).compareTo(request.getAmount()) <= 0){
-            throw new InvalidTransactionException("Insufficient balance");
+
+            return TransactionResponse.builder()
+                    .senderId(senderId)
+                    .receiverId(receiver.getUserId())
+                    .amount(request.getAmount())
+                    .status("FAILED")
+                    .remarks("Insufficient balance")
+                    .currency("INR")
+                    .completedAt(LocalDateTime.now())
+                    .build();
         }
         // Step 6: Build metadata — attach audit/context info (KYC state, initiation source).
         Map<String,Object> metdaData = new HashMap<>();
