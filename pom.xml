@@ -114,6 +114,16 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+
+	<!-- GitHub Packages repository for watchlog-appender -->
+	<repositories>
+		<repository>
+			<id>github</id>
+			<name>GitHub Packages</name>
+			<url>https://maven.pkg.github.com/DarshThakur21/watchlog-appender-maven-dependecy</url>
+		</repository>
+	</repositories>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
