@@ -59,11 +59,14 @@ jobs:
           EOF
 
       - name: Build and verify with Maven
-        run: mvn -B verify --file pom.xml
+        run: mvn -B clean verify --file pom.xml -DskipTests=false
         env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5435/transaction_service_db
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/transaction_service_db
           SPRING_DATASOURCE_USERNAME: postgres
           SPRING_DATASOURCE_PASSWORD: postgres
+          SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+          WATCHLOG_URL: http://localhost:7000
+          WATCHLOG_SERVICE_ID: 00000000-0000-0000-0000-000000000000
 
       - name: Upload JAR artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
