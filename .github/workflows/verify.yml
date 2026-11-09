@@ -11,6 +11,7 @@ on:
       - develop
 
 jobs:
+  # ---------- Job 1: build the JAR and run all tests ----------
   verify:
     runs-on: ubuntu-latest
 
@@ -68,14 +69,17 @@ jobs:
           WATCHLOG_URL: http://localhost:7000
           WATCHLOG_SERVICE_ID: 00000000-0000-0000-0000-000000000000
 
+      # Hand the tested JAR to the next job (only needed on main).
       - name: Upload JAR artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: transaction-service-jar
           path: target/*.jar
+          if-no-files-found: error
           retention-days: 1
 
+  # ---------- Job 2: package the tested JAR into an image and push ----------
   build-and-push:
     needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -89,6 +93,8 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Puts the exact JAR that passed the tests into target/,
+      # where the Dockerfile's `COPY target/*.jar app.jar` expects it.
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
         with:
@@ -117,6 +123,3 @@ jobs:
             darshthakur/transaction-service:latest
             darshthakur/transaction-service:${{ steps.tag_version.outputs.new_tag }}
             darshthakur/transaction-service:${{ github.sha }}
-          build-args: |
-            # Adjust if your JAR name differs
-            JAR_FILE=target/transaction-service-0.0.1-SNAPSHOT.jar
