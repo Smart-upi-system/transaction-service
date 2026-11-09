@@ -1,178 +1,178 @@
-name: Cloud CI/CD Pipeline
-
-on:
-  push:
-    branches: [ "main", "develop" ]
-  pull_request:
-    branches: [ "main", "develop" ]
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deployment environment'
-        required: false
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: transaction_service_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      kafka:
-        image: apache/kafka:3.7.0
-        ports:
-          - 9092:9092
-        env:
-          KAFKA_NODE_ID: 1
-          KAFKA_PROCESS_ROLES: broker,controller
-          KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-          KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-          KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
-          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-          KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-        options: >-
-          --health-cmd "bash -c 'echo > /dev/tcp/localhost/9092'"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-          --health-start-period 30s
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Configure Maven for GitHub Packages
-        run: |
-          mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml << 'EOF'
-          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
-                                https://maven.apache.org/xsd/settings-1.0.0.xsd">
-            <servers>
-              <server>
-                <id>github</id>
-                <username>DarshThakur21</username>
-                <password>${{ secrets.GITHUB_TOKEN }}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
-
-      - name: Build and verify with Maven
-        run: mvn -B clean verify --file pom.xml -DskipTests=false
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/transaction_service_db
-          SPRING_DATASOURCE_USERNAME: postgres
-          SPRING_DATASOURCE_PASSWORD: postgres
-          SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9092
-          WATCHLOG_URL: http://localhost:7000
-          WATCHLOG_SERVICE_ID: 00000000-0000-0000-0000-000000000000
-
-      - name: Upload JAR artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: service-jar
-          path: target/*.jar
-          retention-days: 1
-
-  build-and-push:
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download JAR artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: service-jar
-          path: target
-
-      - name: Bump version and create tag
-        id: tag_version
-        uses: mathieudutour/github-tag-action@v6.2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          default_bump: patch
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and push multi-arch Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
-            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ steps.tag_version.outputs.new_tag }}
-            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ github.sha }}
-
-      - name: Deploy to cloud server (if configured)
-        if: vars.CLOUD_HOST != ''
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.CLOUD_HOST }}
-          username: ${{ secrets.CLOUD_USERNAME }}
-          key: ${{ secrets.CLOUD_SSH_KEY }}
-          script: |
-            cd /opt/upi-wallet-infra
-            docker compose pull ${{ github.event.repository.name }} || true
-            docker compose up -d --no-deps ${{ github.event.repository.name }}
-            sleep 10
-            docker compose ps ${{ github.event.repository.name }}
-        continue-on-error: true
-
-      - name: Dispatch Deployment Event to Infra Repo
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.DEPLOY_PAT_TOKEN }}
-          repository: Smart-upi-system/upi-wallet-infra-compose
-          event-type: service-updated
-          client-payload: '{"service": "${{ github.event.repository.name }}", "version": "${{ steps.tag_version.outputs.new_tag }}"}'
+#name: Cloud CI/CD Pipeline
+#
+#on:
+#  push:
+#    branches: [ "main", "develop" ]
+#  pull_request:
+#    branches: [ "main", "develop" ]
+#  workflow_dispatch:
+#    inputs:
+#      environment:
+#        description: 'Deployment environment'
+#        required: false
+#        default: 'staging'
+#        type: choice
+#        options:
+#          - staging
+#          - production
+#
+#jobs:
+#  test:
+#    runs-on: ubuntu-latest
+#
+#    services:
+#      postgres:
+#        image: postgres:16
+#        env:
+#          POSTGRES_USER: postgres
+#          POSTGRES_PASSWORD: postgres
+#          POSTGRES_DB: transaction_service_db
+#        ports:
+#          - 5432:5432
+#        options: >-
+#          --health-cmd pg_isready
+#          --health-interval 10s
+#          --health-timeout 5s
+#          --health-retries 5
+#
+#      kafka:
+#        image: apache/kafka:3.7.0
+#        ports:
+#          - 9092:9092
+#        env:
+#          KAFKA_NODE_ID: 1
+#          KAFKA_PROCESS_ROLES: broker,controller
+#          KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+#          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+#          KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+#          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+#          KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+#          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+#          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+#          KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+#        options: >-
+#          --health-cmd "bash -c 'echo > /dev/tcp/localhost/9092'"
+#          --health-interval 5s
+#          --health-timeout 5s
+#          --health-retries 20
+#          --health-start-period 30s
+#
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Set up JDK 21
+#        uses: actions/setup-java@v4
+#        with:
+#          java-version: '21'
+#          distribution: 'temurin'
+#          cache: maven
+#
+#      - name: Configure Maven for GitHub Packages
+#        run: |
+#          mkdir -p ~/.m2
+#          cat > ~/.m2/settings.xml << 'EOF'
+#          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+#            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+#            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+#                                https://maven.apache.org/xsd/settings-1.0.0.xsd">
+#            <servers>
+#              <server>
+#                <id>github</id>
+#                <username>DarshThakur21</username>
+#                <password>${{ secrets.GITHUB_TOKEN }}</password>
+#              </server>
+#            </servers>
+#          </settings>
+#          EOF
+#
+#      - name: Build and verify with Maven
+#        run: mvn -B clean verify --file pom.xml -DskipTests=false
+#        env:
+#          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/transaction_service_db
+#          SPRING_DATASOURCE_USERNAME: postgres
+#          SPRING_DATASOURCE_PASSWORD: postgres
+#          SPRING_KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+#          WATCHLOG_URL: http://localhost:7000
+#          WATCHLOG_SERVICE_ID: 00000000-0000-0000-0000-000000000000
+#
+#      - name: Upload JAR artifact
+#        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: service-jar
+#          path: target/*.jar
+#          retention-days: 1
+#
+#  build-and-push:
+#    needs: test
+#    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#    runs-on: ubuntu-latest
+#    permissions:
+#      contents: write
+#
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0
+#
+#      - name: Download JAR artifact
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: service-jar
+#          path: target
+#
+#      - name: Bump version and create tag
+#        id: tag_version
+#        uses: mathieudutour/github-tag-action@v6.2
+#        with:
+#          github_token: ${{ secrets.GITHUB_TOKEN }}
+#          default_bump: patch
+#
+#      - name: Set up QEMU
+#        uses: docker/setup-qemu-action@v3
+#
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@v3
+#
+#      - name: Log in to Docker Hub
+#        uses: docker/login-action@v3
+#        with:
+#          username: ${{ secrets.DOCKER_USERNAME }}
+#          password: ${{ secrets.DOCKER_PASSWORD }}
+#
+#      - name: Build and push multi-arch Docker image
+#        uses: docker/build-push-action@v5
+#        with:
+#          context: .
+#          platforms: linux/amd64,linux/arm64
+#          push: true
+#          tags: |
+#            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:latest
+#            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ steps.tag_version.outputs.new_tag }}
+#            ${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}:${{ github.sha }}
+#
+#      - name: Deploy to cloud server (if configured)
+#        if: vars.CLOUD_HOST != ''
+#        uses: appleboy/ssh-action@v1.0.0
+#        with:
+#          host: ${{ secrets.CLOUD_HOST }}
+#          username: ${{ secrets.CLOUD_USERNAME }}
+#          key: ${{ secrets.CLOUD_SSH_KEY }}
+#          script: |
+#            cd /opt/upi-wallet-infra
+#            docker compose pull ${{ github.event.repository.name }} || true
+#            docker compose up -d --no-deps ${{ github.event.repository.name }}
+#            sleep 10
+#            docker compose ps ${{ github.event.repository.name }}
+#        continue-on-error: true
+#
+#      - name: Dispatch Deployment Event to Infra Repo
+#        uses: peter-evans/repository-dispatch@v3
+#        with:
+#          token: ${{ secrets.DEPLOY_PAT_TOKEN }}
+#          repository: Smart-upi-system/upi-wallet-infra-compose
+#          event-type: service-updated
+#          client-payload: '{"service": "${{ github.event.repository.name }}", "version": "${{ steps.tag_version.outputs.new_tag }}"}'
