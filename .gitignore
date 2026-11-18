@@ -18,6 +18,9 @@ target/
 *.iws
 *.iml
 *.ipr
+/.claude
+.claude
+.claude/
 
 ### NetBeans ###
 /nbproject/private/
@@ -33,4 +36,4 @@ build/
 .vscode/
 /pgdata
 /.claude/settings.local.json
-/.claude/
+
