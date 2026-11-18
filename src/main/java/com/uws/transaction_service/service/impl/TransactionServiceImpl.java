@@ -11,6 +11,7 @@ import com.uws.transaction_service.service.TransactionOrchestratorI;
 import com.uws.user.grpc.proto.*;
 import com.uws.transaction_service.service.TransactionService;
 import com.uws.transaction_service.utils.IdempotencyManager;
+import com.uws.transaction_service.security.AuthPinClient;
 import com.uws.wallet.grpc.proto.BalanceResponse;
 import jakarta.transaction.InvalidTransactionException;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +56,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final WalletServiceGrpcClient walletServiceGrpcClient;
     private final IdempotencyManager idempotencyManager;
     private final ModelMapper modelMapper;
+    private final AuthPinClient authPinClient;
 
 
     /**
@@ -88,6 +90,10 @@ public class TransactionServiceImpl implements TransactionService {
                     idempotencyKey, existingTxnId);
             return getTransaction(senderId.toString(), existingTxnId);
         }
+
+        // Verify the PIN before validating or creating any transaction state.
+        // The raw PIN is never persisted, logged, or added to Kafka events.
+        authPinClient.verify(senderId, request.getUpiPin());
 
         // Step 2: Validate sender — verify the sender exists and is active.
         ValidationResponse senderValidation=userServiceGrpcClient.validateUser(senderId);

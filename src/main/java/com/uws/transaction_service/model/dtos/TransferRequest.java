@@ -24,6 +24,11 @@ public class TransferRequest {
     @DecimalMin(value = "1.0", message = "Amount must be at least ₹1")
     private BigDecimal amount;
 
+    @jakarta.validation.constraints.NotBlank(message = "UPI PIN is required")
+    @Pattern(regexp = "^\\d{6}$", message = "UPI PIN must contain exactly 6 digits")
+    @lombok.ToString.Exclude
+    private String upiPin;
+
     private String remarks;
 
     private String idempotencyKey;

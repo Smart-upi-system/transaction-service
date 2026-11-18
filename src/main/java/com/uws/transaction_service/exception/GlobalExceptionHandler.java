@@ -16,4 +16,9 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(UpiPinVerificationException.class)
+    public ResponseEntity<?> handleUpiPinVerification(UpiPinVerificationException e) {
+        return ResponseEntity.status(e.getStatus()).body(e.getMessage());
+    }
 }

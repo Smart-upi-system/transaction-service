@@ -188,15 +188,21 @@ public class TransactionOrchestrator implements TransactionOrchestratorI {
             // Converting String IDs to UUID for gRPC Client
             UUID senderUuid = UUID.fromString(transaction.getSenderId());
             UUID txnUuid = UUID.fromString(transaction.getTransactionId());
-            UUID senderWalletId = UUID.fromString(transaction.getSenderWalletId());
-
-            walletServiceGrpcClient.credit(
-                    senderUuid,
-                    senderWalletId,
-                    transaction.getAmount(),
-                    txnUuid,
-                    transaction.getIdempotencyKey() + ":compensation"
-            );
+            // Deposits have no sender wallet debit to refund. Crediting here would
+            // create money when a deposit is rejected (the deposit wallet credit
+            // may already have been applied before the fraud failure arrives).
+            if (transaction.getSenderWalletId() != null && !transaction.getSenderWalletId().isBlank()) {
+                UUID senderWalletId = UUID.fromString(transaction.getSenderWalletId());
+                walletServiceGrpcClient.credit(
+                        senderUuid,
+                        senderWalletId,
+                        transaction.getAmount(),
+                        txnUuid,
+                        transaction.getIdempotencyKey() + ":compensation"
+                );
+            } else {
+                log.info("Skipping wallet refund for self-funded deposit {}", transaction.getTransactionId());
+            }
 
             transaction.setFailureReason(reason);
             transaction.setCompletedAt(LocalDateTime.now());
