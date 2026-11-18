@@ -94,7 +94,7 @@ jobs:
           fetch-depth: 0
 
       # Puts the exact JAR that passed the tests into target/,
-      # where the Dockerfile's `COPY target/*.jar app.jar` expects it.
+      # where Dockerfile.ci's `COPY target/*.jar app.jar` expects it.
       - name: Download JAR artifact
         uses: actions/download-artifact@v4
         with:
@@ -118,6 +118,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile.ci
           push: true
           tags: |
             darshthakur/transaction-service:latest

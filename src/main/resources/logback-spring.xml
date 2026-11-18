@@ -13,7 +13,8 @@
     -->
     <appender name="WATCHLOG" class="com.datalog.watchlog.appender.WatchlogHttpAppender">
         <url>${WATCHLOG_URL:-http://localhost:7000}</url>
-        <serviceId>${WATCHLOG_SERVICE_ID}</serviceId>
+<!--        <serviceId>${WATCHLOG_SERVICE_ID}</serviceId>-->
+        <serviceId>c0f9f258-d353-46cf-945b-d5e02ffd3f4d</serviceId>
     </appender>
 
     <root level="INFO">

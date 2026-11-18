@@ -22,4 +22,9 @@ public class DepositRequest {
     private BigDecimal amount;
     private String idempotencyKey; // Optional, can be generated if null
     private String description;
+
+    @NotBlank(message = "UPI PIN is required")
+    @jakarta.validation.constraints.Pattern(regexp = "^\\d{6}$", message = "UPI PIN must contain exactly 6 digits")
+    @lombok.ToString.Exclude
+    private String upiPin;
 }

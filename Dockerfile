@@ -1,12 +1,12 @@
-#/Dockerfile (same pattern for all services)
-
-# Stage 1: Build
+# Local/Compose build: compile the application inside Docker.
 FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
+
 COPY pom.xml .
-# Download dependencies first (cached layer)
+
+# This dependency is private and is vendored for reproducible local builds.
 COPY lib/watchlog-appender-0.1.0.jar /tmp/watchlog-appender-0.1.0.jar
-RUN mvn install:install-file \
+RUN mvn install:install-file -B \
     -Dfile=/tmp/watchlog-appender-0.1.0.jar \
     -DgroupId=com.datalog \
     -DartifactId=watchlog-appender \
@@ -15,23 +15,20 @@ RUN mvn install:install-file \
 
 RUN mvn dependency:go-offline -B
 COPY src ./src
-RUN mvn clean package -DskipTests
+RUN mvn clean package -B -DskipTests
 
-# Stage 2: Run
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Add non-root user for security
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring
 
 COPY --from=builder /app/target/*.jar app.jar
 
 EXPOSE 4003
-# Health check
+
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:4003/transaction/health || exit 1
-
 
 ENTRYPOINT ["java", \
   "-XX:+UseContainerSupport", \
