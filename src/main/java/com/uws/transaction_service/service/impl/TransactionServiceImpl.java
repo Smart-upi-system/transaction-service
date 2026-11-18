@@ -304,6 +304,10 @@ public class TransactionServiceImpl implements TransactionService {
             return getTransaction(userId, idempotencyManager.getTransactionId(key));
         }
 
+        // Authorize the deposit before resolving or crediting a wallet.
+        // The raw PIN must never be persisted or included in transaction events.
+        authPinClient.verify(userId, request.getUpiPin());
+
         // Resolve the wallet for the given UPI ID.
         UserResponse receiver = userServiceGrpcClient.getUserByUpiId(request.getUpiId());
         String receiverWalletId=receiver.getWalletId();
